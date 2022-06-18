@@ -22,9 +22,10 @@ const DATABASE_IDS = {
 }
 
 app.get('/:database', async (req, res) => {
-    if(!DATABASE_IDS.hasOwnProperty(req.params.database)) res.status(404)
+    if(!DATABASE_IDS.hasOwnProperty(req.params.database)) return res.status(404).send()
 
     const notionResponse = await queryDatabase(res, DATABASE_IDS[req.params.database])
+    if(!notionResponse) return
 
     const pages = notionResponse.results.map(page => {
         let item = {
