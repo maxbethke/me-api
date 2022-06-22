@@ -3,6 +3,7 @@ import bodyParser from 'body-parser';
 import cors from 'cors';
 import { Client } from "@notionhq/client";
 import dotenv from 'dotenv';
+import UpstreamServiceError from "./UpstreamServiceError.js";
 
 dotenv.config()
 
@@ -14,20 +15,37 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-const DATABASE_IDS = {
-    techstack: process.env.NOTION_DATABASE_ID_TECHSTACK,
-    tools: process.env.NOTION_DATABASE_ID_TOOLS,
-    languages: process.env.NOTION_DATABASE_ID_LANGUAGES,
-    softskills: process.env.NOTION_DATABASE_ID_SOFTSKILLS
-}
+const EXPERIENCE_DATABASES = [
+    {path: '/techstack', databaseId: process.env.NOTION_DATABASE_ID_TECHSTACK},
+    {path: '/tools', databaseId: process.env.NOTION_DATABASE_ID_TOOLS},
+    {path: '/languages', databaseId: process.env.NOTION_DATABASE_ID_LANGUAGES},
+    {path: '/softskills', databaseId: process.env.NOTION_DATABASE_ID_SOFTSKILLS}
+]
+const PROJECT_DATABASE_ID = process.env.NOTION_DATABASE_ID_PROJECTS
 
-app.get('/:database', async (req, res) => {
-    if(!DATABASE_IDS.hasOwnProperty(req.params.database)) return res.status(404).send()
+app.get(
+    EXPERIENCE_DATABASES.map(item => item.path),
+    async (req, res) => {
+        try {
+            res.send(await getExperience(req.path))
+        } catch (e) {
+            console.error(e)
+            if(e instanceof UpstreamServiceError) {
+                return res.status(500).send('Failed to request an upstream service!')
+            }
 
-    const notionResponse = await queryDatabase(res, DATABASE_IDS[req.params.database])
-    if(!notionResponse) return
+            return res.status(500).send('An unexpected error occurred')
+        }
+    }
+);
 
-    const pages = notionResponse.results.map(page => {
+async function getExperience(database) {
+    const databaseId = EXPERIENCE_DATABASES.find(item => item.path===database).databaseId
+    const notionResponse = await queryDatabase(databaseId)
+
+    let pages = notionResponse.results.filter(page => page.properties.Name.title.length > 0)
+
+    pages = pages.map(page => {
         let item = {
             name: page.properties.Name.title[0].plain_text
         }
@@ -43,10 +61,10 @@ app.get('/:database', async (req, res) => {
         return item
     })
 
-    res.send(pages)
-});
+    return pages
+}
 
-async function queryDatabase(res, databaseId, filter = undefined, sorts = undefined) {
+async function queryDatabase(databaseId, filter = undefined, sorts = undefined) {
     try {
         return await notion.databases.query({
             database_id: databaseId,
@@ -54,8 +72,7 @@ async function queryDatabase(res, databaseId, filter = undefined, sorts = undefi
             sorts: sorts,
         });
     } catch (e) {
-        console.error(e)
-        res.status(500).send('Failed to request an upstream service!')
+        throw new UpstreamServiceError(e)
     }
 }
 
