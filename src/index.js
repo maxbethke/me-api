@@ -21,6 +21,22 @@ const DATABASES = [
     {path: '/projects', databaseId: process.env.NOTION_DATABASE_ID_PROJECTS, processingFunction: getProjects}
 ]
 
+// HTTP Basic Auth
+app.all('*', (req, res, next) => {
+    if(!req.headers.authorization || req.headers.authorization === '') return respond401(res)
+
+    const b64auth = (req.headers.authorization).split(' ')[1]
+    const [login, password] = Buffer.from(b64auth, 'base64').toString().split(':')
+    const user = process.env.HTTP_USER
+    const secret = process.env.HTTP_SECRET
+
+    if (login && password && login === user && password === secret) {
+        return next()
+    }
+
+    respond401(res)
+})
+
 app.get(
     DATABASES.map(item => item.path),
     async (req, res) => {
@@ -38,6 +54,10 @@ app.get(
         }
     }
 );
+
+const respond401 = (res) => {
+    res.status(401).send("Authorization required")
+}
 
 async function getExperience(database) {
     const notionResponse = await queryDatabase(database)
@@ -104,9 +124,9 @@ async function getProjectProperties(page) {
                 }
                 break;
             case 'date':
-                let date = null
-                if(prop.date) date = prop.date.start
-                item[propName.toLowerCase()] = date
+                if(!prop.date) break;
+                const dateIsInPast = new Date(prop.date.start).getTime() < Date.now()
+                if(dateIsInPast) item[propName.toLowerCase()] = prop.date.start
                 break;
         }
     }
