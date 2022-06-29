@@ -2,7 +2,7 @@
 name: Story
 about: A decided feature ready for development
 title: ''
-labels: story
+labels: task
 assignees: maxbethke
 
 ---
