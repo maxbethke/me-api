@@ -70,6 +70,18 @@ async function getProjectProperties(page) {
                     color: prop.select.color
                 }
                 break;
+            case 'multi_select':
+                let selectedItems = []
+
+                for(const selectItem of prop['multi_select']) {
+                    selectedItems.push({
+                        text: selectItem.name,
+                        color: selectItem.color
+                    })
+                }
+
+                item[propName.toLowerCase()] = selectedItems
+                break;
             case 'date':
                 if(!prop.date) break;
                 const dateIsInPast = new Date(prop.date.start).getTime() < Date.now()
