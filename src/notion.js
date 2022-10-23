@@ -24,6 +24,10 @@ export async function getExperience(database) {
             item.field = page.properties.Field.select.name
         }
 
+        if(page.properties.hasOwnProperty("Starred")) {
+            item.starred = page.properties.Starred.checkbox
+        }
+
         return item
     })
 
