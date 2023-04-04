@@ -9,7 +9,8 @@ const DATABASES = [
     {path: '/tools', databaseId: process.env.NOTION_DATABASE_ID_TOOLS, processingFunction: getExperience},
     {path: '/languages', databaseId: process.env.NOTION_DATABASE_ID_LANGUAGES, processingFunction: getExperience},
     {path: '/softskills', databaseId: process.env.NOTION_DATABASE_ID_SOFTSKILLS, processingFunction: getExperience},
-    {path: '/projects', databaseId: process.env.NOTION_DATABASE_ID_PROJECTS, processingFunction: getProjects}
+    {path: '/projects', databaseId: process.env.NOTION_DATABASE_ID_PROJECTS, processingFunction: getProjects},
+    {path: '/principles', databaseId: process.env.NOTION_DATABASE_ID_PRINCIPLES, processingFunction: getExperience}
 ]
 
 router.get(
