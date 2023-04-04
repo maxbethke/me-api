@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import routes from './routes.js'
+import routes from './routes'
 
 dotenv.config()
 
@@ -26,7 +26,7 @@ app.all('*', (req, res, next) => {
     respond401(res)
 })
 
-const respond401 = (res) => {
+const respond401 = (res: any) => {
     res.status(401).send("Authorization required")
 }
 
