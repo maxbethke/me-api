@@ -1,7 +1,7 @@
 import express from 'express'
 import UpstreamServiceError from "./UpstreamServiceError.js";
 import {getExperience, getProjects} from "./notion.js";
-import {updateCache} from "./cache";
+import {getValueFromCache} from "./cache";
 
 const router = express.Router()
 
@@ -24,9 +24,10 @@ router.get(
     collections.map(item => item.path),
     async (req, res) => {
         const collection = collections.find(item => item.path===req.path)
+        const serveFresh = req.query.hasOwnProperty('nocache')
 
         try {
-          res.send(await updateCache(collection!))
+          res.send(await getValueFromCache(collection!, serveFresh))
         } catch (e) {
             console.error(e)
             if(e instanceof UpstreamServiceError) {

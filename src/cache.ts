@@ -10,14 +10,15 @@ import {Buffer} from "buffer";
 
 const client = new S3Client({region: 'eu-central-1'})
 
-export async function updateCache(collection: collection): Promise<string> {
+export async function getValueFromCache(collection: collection, serveFresh: boolean): Promise<string> {
   let cacheContent = ''
 
-  if (await isCacheStale(collection.databaseId)) {
+  if (serveFresh || await isCacheStale(collection.databaseId)) {
     cacheContent = await collection.processingFunction(collection)
-    populateCache(collection.databaseId, cacheContent)
+    repopulateCache(collection.databaseId, cacheContent) // Do not await repopulation
   } else {
     cacheContent = await loadCache(collection.databaseId)
+    console.log('Served old Cache')
   }
 
   return Promise.resolve(cacheContent)
@@ -25,14 +26,13 @@ export async function updateCache(collection: collection): Promise<string> {
 
 async function isCacheStale(name: string): Promise<boolean> {
   try {
-    const cacheChecksum = await client.send(new GetObjectAttributesCommand({
+    const objectAttributes = await client.send(new GetObjectAttributesCommand({
       Bucket: process.env.S3_BUCKET_NAME,
       Key: name,
       ObjectAttributes: ['Checksum']
     }));
-    console.log('current cache checksum', cacheChecksum)
-    return Promise.resolve(false)
-    // TODO: Implement further cache invalidation based on checksum
+    const lastModified = objectAttributes.LastModified
+    return Promise.resolve((new Date).getTime() - lastModified?.getTime() > 1000*60*60*24)
   } catch (e) {
     if (e instanceof NoSuchKey) {
       return Promise.resolve(true)
@@ -41,7 +41,7 @@ async function isCacheStale(name: string): Promise<boolean> {
   }
 }
 
-async function populateCache(name: string, content: string): Promise<void> {
+async function repopulateCache(name: string, content: string): Promise<void> {
   const contentLength = Buffer.byteLength(JSON.stringify(content))
 
   await client.send(new PutObjectCommand({
@@ -50,6 +50,8 @@ async function populateCache(name: string, content: string): Promise<void> {
     Body: JSON.stringify(content),
     ContentLength: contentLength
   }))
+
+  console.log('Refreshed Cache')
   return Promise.resolve()
 }
 
@@ -58,5 +60,6 @@ async function loadCache(name: string): Promise<string> {
     Bucket: process.env.S3_BUCKET_NAME,
     Key: name
   }))
-  return content.Body?.transformToString()!
+  const data = await content.Body?.transformToString()!
+  return JSON.parse(data)
 }
