@@ -32,7 +32,7 @@ async function isCacheStale(name: string): Promise<boolean> {
       ObjectAttributes: ['Checksum']
     }));
     const lastModified = objectAttributes.LastModified
-    return Promise.resolve((new Date).getTime() - lastModified?.getTime() > 1000*60*60*24)
+    return Promise.resolve((new Date).getTime() - lastModified?.getTime()! > 1000*60*60*24)
   } catch (e) {
     if (e instanceof NoSuchKey) {
       return Promise.resolve(true)

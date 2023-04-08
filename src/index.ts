@@ -1,12 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import routes from './routes'
+import routes from './routes';
 
 dotenv.config()
 
 const app = express();
-const port = process.env.NODE_PORT
 
 app.use(cors());
 
@@ -27,9 +26,16 @@ app.all('*', (req, res, next) => {
 })
 
 const respond401 = (res: any) => {
+    console.log('Rejected unauthorized request')
     res.status(401).send("Authorization required")
 }
 
-app.use('/api', routes)
+app.use(routes)
 
-app.listen(port, () => console.log(`App listening on port ${port}!`));
+if (process.env.NODE_ENV === 'dev') {
+    const port = process.env.NODE_PORT
+    app.listen(port, () => console.log(`App listening on port ${port}!`));
+}
+
+const serverlessExpress = require('@vendia/serverless-express')
+exports.handler = serverlessExpress({ app })
